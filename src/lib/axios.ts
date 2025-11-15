@@ -1,4 +1,5 @@
-import axios, { type AxiosError } from "axios";
+import axios, { AxiosError } from "axios";
+import { useAuthStore } from "@/lib/zustand/useAuthStore";
 
 export class ApiError extends Error {
   constructor(
@@ -18,18 +19,33 @@ export const api = axios.create({
   },
 });
 
+api.interceptors.request.use(
+  (config) => {
+    const token = useAuthStore.getState().token;
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ✅ Response Interceptor → uniform error handling
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ message: string }>) => {
+  (error: AxiosError<{ message?: string }>) => {
     const apiError = new ApiError(
       error.response?.status || 500,
       error.response?.data?.message || "Something went wrong",
       error.response?.data
     );
 
-    // Log error untuk development
     if (process.env.NODE_ENV === "development") {
-      console.error("API Error:", apiError);
+      console.error("❌ API Error:", apiError);
+    }
+
+    // optional: auto logout kalau 401
+    if (apiError.status === 401) {
+      const { logout } = useAuthStore.getState();
+      logout();
     }
 
     return Promise.reject(apiError);
