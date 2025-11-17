@@ -3,6 +3,7 @@ import { Slot } from "@radix-ui/react-slot"
 import { ChevronRight, MoreHorizontal } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import Link from "next/link";
 
 function Breadcrumb({ ...props }: React.ComponentProps<"nav">) {
   return <nav aria-label="breadcrumb" data-slot="breadcrumb" {...props} />
@@ -32,21 +33,26 @@ function BreadcrumbItem({ className, ...props }: React.ComponentProps<"li">) {
 }
 
 function BreadcrumbLink({
-  asChild,
-  className,
-  ...props
-}: React.ComponentProps<"a"> & {
-  asChild?: boolean
+                          asChild,
+                          className,
+                          href,
+                          ...props
+                        }: React.ComponentProps<typeof Link> & {
+  asChild?: boolean;
 }) {
-  const Comp = asChild ? Slot : "a"
+  const Comp = asChild ? Slot : Link;
 
   return (
     <Comp
+      href={href ?? "#"}
       data-slot="breadcrumb-link"
-      className={cn("hover:text-foreground transition-colors", className)}
+      className={cn(
+        "hover:text-foreground transition-colors",
+        className
+      )}
       {...props}
     />
-  )
+  );
 }
 
 function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
@@ -63,20 +69,20 @@ function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
 }
 
 function BreadcrumbSeparator({
-  children,
-  className,
-  ...props
-}: React.ComponentProps<"li">) {
+                               children,
+                               className,
+                               ...props
+                             }: React.ComponentProps<"span">) {
   return (
-    <li
+    <span
       data-slot="breadcrumb-separator"
       role="presentation"
       aria-hidden="true"
-      className={cn("[&>svg]:size-3.5", className)}
+      className={cn("[&>svg]:size-3.5 inline-flex items-center", className)}
       {...props}
     >
       {children ?? <ChevronRight />}
-    </li>
+    </span>
   )
 }
 
@@ -98,8 +104,44 @@ function BreadcrumbEllipsis({
   )
 }
 
+type BreadcrumbItemType = {
+  label: string;
+  href?: string;
+  isCurrent?: boolean;
+};
+
+interface BreadcrumbsProps {
+  items: BreadcrumbItemType[];
+  className?: string;
+}
+
+function Breadcrumbs({ items, className }: BreadcrumbsProps) {
+  return (
+    <Breadcrumb className={className}>
+      <BreadcrumbList>
+        {items.map((item, index) => {
+          const isLast = index === items.length - 1;
+
+          return (
+            <BreadcrumbItem key={index}>
+              {item.isCurrent || isLast ? (
+                <BreadcrumbPage>{item.label}</BreadcrumbPage>
+              ) : (
+                <BreadcrumbLink href={item.href ?? ""}>{item.label}</BreadcrumbLink>
+              )}
+
+              {!isLast && <BreadcrumbSeparator />}
+            </BreadcrumbItem>
+          );
+        })}
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
+}
+
 export {
   Breadcrumb,
+  Breadcrumbs,
   BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,

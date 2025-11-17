@@ -29,9 +29,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuthStore } from "@/lib/zustand/useAuthStore";
-import { useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import router from "next/router"
 
 export function NavUser({
   user,

@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { User } from "@/types/api";
 
 type AuthState = {
-  user: any | null;
+  user: User | null;
   token: string | null;
   hydrated: boolean;
   setUser: (user: any) => void;
@@ -18,7 +19,7 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       hydrated: false,
 
-      setUser: (user) => set({ user }),
+      setUser: (user: User) => set({ user }),
       setToken: (token) => set({ token }),
       logout: () => set({ user: null, token: null }),
       setHydrated: (v) => set({ hydrated: v }),

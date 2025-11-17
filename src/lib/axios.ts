@@ -1,5 +1,6 @@
 import axios, { AxiosError } from "axios";
 import { useAuthStore } from "@/lib/zustand/useAuthStore";
+import { env } from "@/lib/env";
 
 export class ApiError extends Error {
   constructor(
@@ -12,7 +13,7 @@ export class ApiError extends Error {
 }
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  baseURL: env.NEXT_PUBLIC_API_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

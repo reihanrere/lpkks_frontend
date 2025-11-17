@@ -16,29 +16,39 @@ export interface AuthData {
 }
 
 /**
- * Tipe generik untuk respons API yang sukses.
- * @template T - Tipe dari field 'data', bisa object atau array.
+ * Generic pagination metadata
+ */
+export interface PaginationMeta {
+  total: number;
+  per_page: number;
+  current_page: number;
+  last_page: number;
+  from?: number;
+  to?: number;
+}
+
+/**
+ * Generic paginated response
+ */
+export interface PaginatedData<T> {
+  data: T[];
+  pagination: PaginationMeta;
+}
+
+/**
+ * Generic success response
  */
 export interface ApiSuccessResponse<T> {
   status: true;
   message: string;
   data: T;
-
-  // Opsional: Tambahkan ini jika API Anda memiliki paginasi
-  // meta?: {
-  //   current_page: number;
-  //   last_page: number;
-  //   per_page: number;
-  //   total: number;
-  // };
 }
 
 /**
- * Tipe generik untuk respons API yang error.
+ * Generic error response
  */
 export interface ApiErrorResponse {
   status: false;
   message: string;
-
   errors?: Record<string, string[]>;
 }

@@ -5,44 +5,49 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  getPaginationRowModel,
   useReactTable,
+  PaginationState,
 } from "@tanstack/react-table"
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DataTablePagination } from "@/components/ui/data-table/data-table-pagination";
+import { DataTablePagination } from "./data-table-pagination"
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+  SelectValue,
+} from "@/components/ui/select"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  pagination: PaginationState
+  onPaginationChange: (updater: PaginationState | ((prev: PaginationState) => PaginationState)) => void
+  totalItems: number
   toolbar?: React.ReactNode
-  pagination?: boolean
+  isLoading?: boolean
 }
 
 export function DataTable<TData, TValue>({
                                            columns,
                                            data,
+                                           pagination,
+                                           onPaginationChange,
+                                           totalItems,
                                            toolbar,
-                                           pagination = true,
+                                           isLoading = false,
                                          }: DataTableProps<TData, TValue>) {
+  const computedPageCount = Math.ceil(totalItems / pagination.pageSize)
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    pageCount: computedPageCount,
+    state: { pagination },
+    onPaginationChange,
   })
 
   return (
@@ -52,13 +57,11 @@ export function DataTable<TData, TValue>({
       <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
+            {table.getHeaderGroups().map((group) => (
+              <TableRow key={group.id}>
+                {group.headers.map((header) => (
                   <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -66,19 +69,29 @@ export function DataTable<TData, TValue>({
           </TableHeader>
 
           <TableBody>
-            {table.getRowModel().rows.length ? (
+            {isLoading ? (
+              <>
+                {Array.from({ length: pagination.pageSize }).map((_, rowIndex) => (
+                  <TableRow key={`loading-${rowIndex}`}>
+                    {columns.map((col, colIndex) => (
+                      <TableCell key={`loading-cell-${rowIndex}-${colIndex}`}>
+                        <div className="w-full h-[10px] rounded bg-gray-200 animate-pulse" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </>
+            ) : table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="text-center h-24">
+                <TableCell colSpan={columns.length} className="text-center h-20 text-muted-foreground">
                   No results.
                 </TableCell>
               </TableRow>
@@ -86,28 +99,38 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className={cn("flex items-center py-4", table.getSelectedRowModel().rows.length > 0 ? "justify-between" : "justify-end")}>
-        {/* Left: Selected rows */}
-        {table.getSelectedRowModel().rows.length > 0 && (
-            <div className="text-muted-foreground text-sm">
-              {table.getSelectedRowModel().rows.length} of{" "}
-              {table.getFilteredRowModel().rows.length} row(s) selected.
-            </div>
-          )}
 
-        <div className="flex items-center gap-4">
-          {/* Middle: Rows per page */}
-          <div className="flex items-center gap-2 text-sm text-foreground">
-            <span>Rows per page</span>
+      {/* Pagination Section */}
+      <div className="flex items-center justify-between px-2 py-4">
+        <div className="text-sm text-muted-foreground">
+          Showing{" "}
+          <span className="font-medium">{pagination.pageIndex * pagination.pageSize + 1}</span>{" "}
+          to{" "}
+          <span className="font-medium">
+            {Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalItems)}
+          </span>{" "}
+          of <span className="font-medium">{totalItems}</span> entries
+        </div>
+
+        <div className="flex items-center gap-6">
+          {/* Rows Per Page */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm">Rows per page</span>
             <Select
-              value={String(table.getState().pagination.pageSize)}
-              onValueChange={(value) => table.setPageSize(Number(value))}
+              value={String(pagination.pageSize)}
+              onValueChange={(value) =>
+                onPaginationChange((prev) => ({
+                  ...prev,
+                  pageSize: Number(value),
+                  pageIndex: 0,
+                }))
+              }
             >
-              <SelectTrigger className="w-[80px]">
+              <SelectTrigger className="h-8 w-[70px]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                {[1, 5, 10, 20, 50].map((size) => (
+              <SelectContent side="top">
+                {[5, 10, 20, 50].map((size) => (
                   <SelectItem key={size} value={String(size)}>
                     {size}
                   </SelectItem>
@@ -116,11 +139,9 @@ export function DataTable<TData, TValue>({
             </Select>
           </div>
 
-          {/* Right: Pagination */}
-          {pagination && <DataTablePagination table={table} />}
+          <DataTablePagination table={table} />
         </div>
       </div>
-
     </div>
   )
 }
